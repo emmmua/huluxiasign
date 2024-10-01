@@ -1,6 +1,19 @@
 # 葫芦侠自动签到Python脚本
 
-使用说明修改config.json文件，再运行signin.py即可
+首先安装必要的`requests`模块
+
+```bash
+pip install requests
+```
+
+   或者
+
+```bash
+pip3 install requests
+```
+
+
+修改config.json文件，再运行signin.py即可
 
 配置文件说明
 ```json5
@@ -27,3 +40,5 @@
   ]
 }
 ```
+
+后续可以使用Linux定时任务在云服务器中每天自动签到，可以参考文章[https://blog.fivk.cn/archives/6537.html](https://blog.fivk.cn/archives/6537.html)。

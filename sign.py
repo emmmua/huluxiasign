@@ -3,6 +3,7 @@ import json
 import re
 import smtplib
 import time
+import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -168,18 +169,15 @@ def read_accounts(file_path):
                 accounts[username] = password  # 存入字典
     return accounts
 
-def send_email(success_accounts, failed_accounts):
+
+def send_email(success_accounts, failed_accounts, config):
     """
     发送邮件通知。
 
     :param success_accounts: 签到成功的账号列表
     :param failed_accounts: 签到失败的账号列表
+    :param config: 邮件配置信息
     """
-
-    # 读取配置文件
-    with open('config.json', encoding='utf-8') as config_file:
-        config = json.load(config_file)
-
 
     # 获取配置信息
     sender_email = config['sender_email']
@@ -189,8 +187,17 @@ def send_email(success_accounts, failed_accounts):
     smtp_port = config['smtp_port']
     encryption_type = config['encryption_type']
     subject = config['subject'] + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    # 内容是签到成功的账号列表和失败的列表
-    body = f"签到成功的账号：{success_accounts}\n签到失败的账号：{failed_accounts}"
+
+    # 邮件内容处理
+    success_message = "签到成功的账号："
+    failed_message = "签到失败的账号："
+
+    if success_accounts:
+        success_message += "\n" + "\n".join(f"- {account}" for account in success_accounts)
+    if failed_accounts:
+        failed_message += "\n" + "\n".join(f"- {account}" for account in failed_accounts)
+
+    body = f"{success_message}\n{failed_message}"
 
     # 创建邮件对象
     msg = MIMEMultipart()
@@ -221,7 +228,6 @@ def send_email(success_accounts, failed_accounts):
         print(f"发生错误：{e}")
 
 
-
 if __name__ == "__main__":
 
     # 签到成功账号列表
@@ -230,8 +236,12 @@ if __name__ == "__main__":
     # 失败的账号列表
     failed_accounts = []
 
-    # 读取配置文件
-    with open('config.json') as config_file:
+    # 获取当前脚本所在的目录
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(current_dir, 'config.json')
+
+    # 打开 config.json 文件
+    with open(config_path, encoding='utf-8') as config_file:
         config = json.load(config_file)
 
     # 遍历账号信息并登录签到
@@ -253,4 +263,4 @@ if __name__ == "__main__":
 
     if config['isEmailEnabled']:
         print("正在发送通知邮箱")
-        send_email(success_accounts, failed_accounts)  # 发送邮件提醒
+        send_email(success_accounts, failed_accounts, config)  # 发送邮件提醒
