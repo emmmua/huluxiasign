@@ -1,8 +1,12 @@
-import requests
-import json
 import hashlib
-import time
+import json
 import re
+import smtplib
+import time
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+import requests
 
 
 def get_response(url, method='GET', headers=None, data=None):
@@ -99,13 +103,14 @@ def get_login_sign(account, password):
     }
 
     # 发送登录请求
-    response_login = get_response(url, method='POST', headers=headers,data=data)
+    response_login = get_response(url, method='POST', headers=headers, data=data)
     if response_login:
         login_json = json.loads(response_login)
         # 检查登录状态
         if login_json.get('status') == 1:
             login_info = login_json['user']
-            print(f"——{'—' * 20}\n当前状态: 登陆成功\n用户ID: {login_info['userID']}\n用户名: {login_info['nick']}\n——{'—' * 20}")
+            print(
+                f"——{'—' * 20}\n当前状态: 登陆成功\n用户ID: {login_info['userID']}\n用户名: {login_info['nick']}\n——{'—' * 20}")
             return login_json['_key']
     return None
 
@@ -164,11 +169,70 @@ def read_accounts(file_path):
     return accounts
 
 
+def send_email(failed_accounts):
+    """
+    发送邮件提醒失败的账号信息。
+
+    :param failed_accounts: 失败的账号列表
+    """
+
+    # 读取配置文件
+    with open('config.json') as config_file:
+        config = json.load(config_file)
+
+    # 获取配置信息
+    sender_email = config['sender_email']
+    sender_password = config['sender_password']
+    receiver_email = config['receiver_email']
+    smtp_server = config['smtp_server']
+    smtp_port = config['smtp_port']
+    subject = config['subject']
+    body = f"以下账号登录失败：{', '.join(failed_accounts)}"
+
+    # 创建邮件对象
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+
+    # 发送邮件
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()  # 启动 TLS 加密
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+        print("Email sent successfully!")
+    except Exception as e:
+        print(f"Error: {e}")
+
+
 if __name__ == "__main__":
-    file_path = 'accounts.txt'  # 替换为你的文件路径
-    accounts = read_accounts(file_path)  # 读取账号信息
-    for account, password in accounts.items():
+
+    # 失败的账号列表
+    failed_accounts = []
+
+    # 读取配置文件
+    with open('config.json') as config_file:
+        config = json.load(config_file)
+
+    # 遍历账号信息并登录签到
+    for accounts in config['accounts']:
+        account = accounts['phone']
+        password = accounts['password']
         print(f"正在登录账号：{account}")
         loginkey = get_login_sign(account, password)  # 登录并获取登录密钥
+
+        # 如果登录失败添加到失败记录后续邮箱提醒
+        if not loginkey:
+            print(f"登录失败：{account}，请检查账号密码是否正确")
+            failed_accounts.append(account)
+            continue
+
         if loginkey:  # 如果登录成功
             process_run(loginkey)  # 执行签到
+
+    if failed_accounts and config['isEmailEnabled']:
+        print(f"以下账号登录失败：{', '.join(failed_accounts)}")
+        print("正在发送邮箱")
+        send_email(failed_accounts)  # 发送邮件提醒
