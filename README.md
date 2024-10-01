@@ -5,7 +5,8 @@
 配置文件说明
 ```json5
 {
-  "isEmailEnabled": 0,    // 是否开启邮件提醒，0为关闭，1为开启
+  "isEmailEnabled": true,    // 是否开启邮件提醒
+  "encryption_type": "ssl",
   "sender_email": "your_email@example.com",
   "sender_password": "your_password",
   "receiver_email": "recipient@example.com",

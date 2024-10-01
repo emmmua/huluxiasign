@@ -1,11 +1,12 @@
 {
-  "isEmailEnabled": 0,
+  "isEmailEnabled":true,
+  "encryption_type": "ssl",
   "sender_email": "your_email@example.com",
   "sender_password": "your_password",
   "receiver_email": "recipient@example.com",
   "smtp_server": "smtp.gmail.com",
   "smtp_port": 587,
-  "subject": "HuluXia 签到失败账号提醒",
+  "subject": "HuluXia 签到账号信息",
   "accounts": [
     {
       "phone": "1234567890",

@@ -168,17 +168,18 @@ def read_accounts(file_path):
                 accounts[username] = password  # 存入字典
     return accounts
 
-
-def send_email(failed_accounts):
+def send_email(success_accounts, failed_accounts):
     """
-    发送邮件提醒失败的账号信息。
+    发送邮件通知。
 
-    :param failed_accounts: 失败的账号列表
+    :param success_accounts: 签到成功的账号列表
+    :param failed_accounts: 签到失败的账号列表
     """
 
     # 读取配置文件
-    with open('config.json') as config_file:
+    with open('config.json', encoding='utf-8') as config_file:
         config = json.load(config_file)
+
 
     # 获取配置信息
     sender_email = config['sender_email']
@@ -186,8 +187,10 @@ def send_email(failed_accounts):
     receiver_email = config['receiver_email']
     smtp_server = config['smtp_server']
     smtp_port = config['smtp_port']
-    subject = config['subject']
-    body = f"以下账号登录失败：{', '.join(failed_accounts)}"
+    encryption_type = config['encryption_type']
+    subject = config['subject'] + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    # 内容是签到成功的账号列表和失败的列表
+    body = f"签到成功的账号：{success_accounts}\n签到失败的账号：{failed_accounts}"
 
     # 创建邮件对象
     msg = MIMEMultipart()
@@ -198,16 +201,31 @@ def send_email(failed_accounts):
 
     # 发送邮件
     try:
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()  # 启动 TLS 加密
-            server.login(sender_email, sender_password)
-            server.send_message(msg)
-        print("Email sent successfully!")
+        if encryption_type == 'ssl':
+            with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+                server.login(sender_email, sender_password)
+                server.send_message(msg)
+        elif encryption_type == 'tls':
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()  # 启动 TLS 加密
+                server.login(sender_email, sender_password)
+                server.send_message(msg)
+        else:
+            print("无效的加密类型。请使用 'ssl' 或 'tls'。")
+        print("邮件发送成功！")
+    except smtplib.SMTPAuthenticationError:
+        print("身份验证失败。请检查你的邮箱和密码。")
+    except smtplib.SMTPException as e:
+        print(f"SMTP错误发生：{e}")
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"发生错误：{e}")
+
 
 
 if __name__ == "__main__":
+
+    # 签到成功账号列表
+    success_accounts = []
 
     # 失败的账号列表
     failed_accounts = []
@@ -229,10 +247,10 @@ if __name__ == "__main__":
             failed_accounts.append(account)
             continue
 
-        if loginkey:  # 如果登录成功
+        if loginkey:
+            success_accounts.append(account)
             process_run(loginkey)  # 执行签到
 
-    if failed_accounts and config['isEmailEnabled']:
-        print(f"以下账号登录失败：{', '.join(failed_accounts)}")
-        print("正在发送邮箱")
-        send_email(failed_accounts)  # 发送邮件提醒
+    if config['isEmailEnabled']:
+        print("正在发送通知邮箱")
+        send_email(success_accounts, failed_accounts)  # 发送邮件提醒
