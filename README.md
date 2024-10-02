@@ -25,7 +25,7 @@ pip3 install requests
   "receiver_email": "recipient@example.com",
   "smtp_server": "smtp.gmail.com",
   "smtp_port": 587,
-  "subject": "HuluXia 签到失败账号提醒",
+  "subject": "HuluXia 签到提醒信息",
   
   // 葫芦侠手机号密码列表
   "accounts": [
